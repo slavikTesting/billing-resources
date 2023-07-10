@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation Template to deploy insecure infrastructure
+Metadata:
+  # should not be billed
+  License: Apache-2.0
+
+Transform: AWS::Serverless-2016-10-31 # should not be billed
+
+Parameters:
+  LatestAmiId:
+    # should not be billed
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+Mappings:
+  RegionMap:
+    # should not be billed
+    us-east-1:
+      AMI: "ami-0ff8a91507f77f867"
+
+Globals:
+  # should not be billed
+  Function:
+    Timeout: 5
+
+Resources:
+  EC2Instance:
+      # should be billed
+      Type: AWS::EC2::Instance
+      Properties:
+        AvailabilityZone:
+          Fn::Select:
+          - "0"
+          - Fn::GetAZs: ""
+        InstanceType: t2.nano
+        ImageId: !Ref LatestAmiId
+        Tags:
+          - Key: Name
+            Value: !Sub "${AWS::AccountId}-${CompanyName}-${Environment}-ec2"
+          - Key: yor_trace
+            Value: 595b9b79-bd1e-45fd-a297-d521ebdf15e7
+          - Key: git_org
+            Value: bridgecrewio
+          - Key: git_repo
+            Value: cfngoat
+          - Key: git_file
+            Value: cfngoat.yaml
+          - Key: git_commit
+            Value: 42153ba22c28f5c0bff388b24a6344137a5dfe26
+          - Key: git_modifiers
+            Value: jonathan.jozwiak/nimrodkor
+          - Key: git_last_modified_at
+            Value: "2021-08-23 13:51:41"
+          - Key: git_last_modified_by
+            Value: nimrodkor@gmail.com
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            sudo yum -y update
+            sudo yum -y install httpd php php-mysqlnd
+            sudo systemctl enable httpd
+            sudo systemctl start httpd
+            export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMAAA
+            export AWS_SECRET_ACCESS_KEY=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
+            export AWS_DEFAULT_REGION=us-west-2
+            echo "<h1>Deployed via CloudFormation</h1>" | sudo tee /var/www/html/index.html
+
+Outputs:
+  EC2PublicDNS:
+    # should not be billed
+    Description: Web Host Public DNS Name
+    Value: !GetAtt [EC2Instance, PublicDnsName]
+
